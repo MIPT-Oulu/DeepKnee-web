@@ -1,0 +1,6 @@
+[submodule "src_kneelocalizer"]
+	path = src_kneelocalizer
+	url = git@github.com:MIPT-Oulu/KneeLocalizer.git
+[submodule "src_deepknee"]
+	path = src_deepknee
+	url = git@github.com:MIPT-Oulu/DeepKnee.git
