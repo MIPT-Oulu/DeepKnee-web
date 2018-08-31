@@ -26,7 +26,7 @@ def parse_args():
                    action='store_true')
 
     args = p.parse_args()
-    args.path_data_root = os.path.abspath(args.path_data_root)
+    args.path_proj_root = os.path.abspath(args.path_proj_root)
     args.path_logs = os.path.abspath(args.path_logs)
     return args
 
@@ -52,49 +52,61 @@ class KneeLocalizerWrapper(object):
             msg = ("KneeLocalizer execution failed with error: ",
                    ret.stderr)
             logger.error(msg)
-            return False, None
-        return True, result
+            return False
+        return True
 
 
 module_kneelocalizer = KneeLocalizerWrapper(
-    path_root=os.path.join(config.path_project_root, 'src_kneelocalizer')
+    path_root=os.path.join(config.path_proj_root, 'src_kneelocalizer')
 )
 
 
 class DeepKneeWrapper(object):
     def __init__(self, path_root,
-                 path_script_0='Dataset/crop_rois_your_dataset.py',
-                 path_script_1='inference_own/predict.py'):
+                 path_script_0=('Dataset', 'crop_rois_your_dataset.py'),
+                 path_script_1=('own_codes', 'predict.py'),
+                 path_script_2=('own_codes', 'produce_gradcam.py')):
         self.path_root = path_root
         self.path_script_0 = path_script_0
         self.path_script_1 = path_script_1
+        self.path_script_2 = path_script_2
 
     def run(self, path_dicom_input, path_file_loc,
             path_crop, path_inf):
         ret = subprocess.run((
             'conda activate deep_knee'
             ' ; '
+            f'cd {os.path.join(self.path_root, self.path_script_0[0])}'
+            ' ; '
             'python'
-            f' {os.path.join(self.path_root, self.path_script_0)}'
+            f' {self.path_script_0[1]}'
             f' --data_dir {os.path.abspath(path_dicom_input)}'
             f' --save_dir {os.path.abspath(path_crop)}'
             f' --detections {os.path.abspath(path_file_loc)}'
             ' ; '
+            f'cd {os.path.join(self.path_root, self.path_script_1[0])}'
+            ' ; '
             'python'
-            f' {os.path.join(self.path_root, self.path_script_1)}'
+            f' {self.path_script_1[1]}'
             f' --dataset {os.path.abspath(path_crop)}'
             f' --save_results {os.path.abspath(path_inf)}'
+            ' ; '
+            f'cd {os.path.join(self.path_root, self.path_script_2[0])}'
+            ' ; '
+            'python'
+            f' {self.path_script_2[1]}'
+            # TODO: finalize call
         ), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if ret.returncode != 0:
             msg = ("DeepKnee execution failed with error: ",
                    ret.stderr)
             logger.error(msg)
-            return False, None
-        return True, result
+            return False
+        return True
 
 
 module_deepknee = DeepKneeWrapper(
-    path_root=os.path.join(config.path_project_root, 'src_deepknee')
+    path_root=os.path.join(config.path_proj_root, 'src_deepknee')
 )
 
 
@@ -108,45 +120,70 @@ class SIONamespace(socketio.Namespace):
         global module_kneelocalizer
         global module_deepknee
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # Create subfolders to store intermediate results
-            path_raw = os.path.join(tmp_dir, '00_raw')
-            path_loc = os.path.join(tmp_dir, '01_loc')
-            path_crop = os.path.join(tmp_dir, '02_crop')
-            path_inf = os.path.join(tmp_dir, '03_inf')
+        path_raw = '/Users/egor/Workspace/p20_deep_knee_app/'
 
-            for p in (path_raw, path_loc, path_crop, path_inf):
-                os.makedirs(p)
+        # Receive and decode DICOM image
+        data_json = json.loads(data)
+        fname_dicom = os.path.join(path_raw, 'image.png')
+        with open(fname_dicom, 'wb') as f:
+            tmp = data_json['file_blob'].split(',', 1)[1]
+            f.write(base64.b64decode(tmp))
 
-            # Receive and decode DICOM image
-            data_json = json.loads(data)
-            fname_dicom = os.path.join(path_raw, 'image.dicom')
-            with open(fname_dicom, 'wb') as f:
-                tmp = base64.b64decode(data_json['file_blob']).decode('utf-8')
-                f.write(tmp)
+        # TODO: remove this debug statement
+        if False:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Create subfolders to store intermediate results
+                path_raw = os.path.join(tmp_dir, '00_raw')
+                path_loc = os.path.join(tmp_dir, '01_loc')
+                path_crop = os.path.join(tmp_dir, '02_crop')
+                path_inf = os.path.join(tmp_dir, '03_inf')
+                path_vis = os.path.join(tmp_dir, '04_vis')
 
-            # Run knee localization
-            path_file_loc = os.path.join(path_loc, 'detection_results.txt')
-            module_kneelocalizer.run(
-                path_input=path_raw,
-                path_file_output=path_file_loc
-            )
+                for p in (path_raw, path_loc, path_crop, path_inf, path_vis):
+                    os.makedirs(p)
 
-            module_deepknee.run(
-                path_dicom_input=path_raw,
-                path_file_loc=path_file_loc,
-                path_crop=path_crop,
-                path_inf=path_inf
-            )
+                # Receive and decode DICOM image
+                data_json = json.loads(data)
+                fname_dicom = os.path.join(path_raw, 'image.dicom')
+                with open(fname_dicom, 'wb') as f:
+                    tmp = base64.b64decode(data_json['file_blob']).decode('utf-8')
+                    f.write(tmp)
 
-            ret = json.dumps(
-                {"image_src": "aaa",
-                 "image_first": "bbb",
-                 "image_second": "ccc",
-                 "special_first": "ddd",
-                 "special_second": "eee"}
-            )
+                # Run knee localization
+                path_file_loc = os.path.join(path_loc, 'detection_results.txt')
+                module_kneelocalizer.run(
+                    path_input=path_raw,
+                    path_file_output=path_file_loc
+                )
 
+                # Run grading
+                module_deepknee.run(
+                    path_dicom_input=path_raw,
+                    path_file_loc=path_file_loc,
+                    path_crop=path_crop,
+                    path_inf=path_inf,
+                    path_vis=path_vis
+                )
+
+                # Pack the results into JSON-message
+                ret = json.dumps(
+                    {"image_src": "aaa",
+                     "image_first": "bbb",
+                     "image_second": "ccc",
+                     "special_first": "ddd",
+                     "special_second": "eee"}
+                )
+
+        web_image_prefix = 'data:image/png;base64,'
+        ret = json.dumps(
+            {"image_src": 'aaa',
+             "image_first": 'bbb',
+             "image_second": 'ccc',
+             "special_first": 'ddd',
+             "special_second": 'eee'}
+        )
+
+        # Send out the results
         logger.debug('Returning: {}'.format(ret))
         self.emit('dicom_processing', ret)
 
