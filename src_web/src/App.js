@@ -4,7 +4,6 @@ import {
     Progress,  // eslint-disable-next-line
     Row,  // eslint-disable-next-line
     Col,  // eslint-disable-next-line
-    Jumbotron,  // eslint-disable-next-line
 } from 'reactstrap';
 import Footer from './Footer';
 import socketIOClient from "socket.io-client";
@@ -33,10 +32,8 @@ class SIOClient extends Component {
         }
         // Results updated
         if (this.state.response !== prevState.response) {
-            // TODO: unpack the results
             const response_raw = this.state.response;
             const response_obj = JSON.parse(response_raw);
-            // Lift up the update
             let ret = {
                 server_status: "OK!",
                 server_response: response_raw,
@@ -49,6 +46,7 @@ class SIOClient extends Component {
             };
             console.log('Received:');
             console.log(ret);
+            // Lift up the update
             this.props.onServerResponse(ret);
         }
     }
@@ -182,43 +180,41 @@ class App extends Component {
 
                 <hr />
 
-                {/*<Jumbotron>*/}
-                    <div className="container">
-                        <div className="row" style={{height: "400px"}}>
-                            <div className="col-sm text-center align-self-center">
-                                <img src={this.state.image_src} className="img-fluid" alt=""/>
-                            </div>
-                            <div className="col-sm text-center align-self-center">
-                                <img src={this.state.image_first} className="img-fluid" alt=""/>
-                            </div>
-                            <div className="col-sm text-center align-self-center">
-                                <img src={this.state.image_second} className="img-fluid" alt=""/>
-                            </div>
+                <div className="container">
+                    <div className="row" style={{height: "400px"}}>
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.image_src} className="img-fluid" alt=""/>
                         </div>
-                        <div className="row" style={{height: "100px"}}>
-                            <div className="col-sm align-self-center">
-                                {}
-                            </div>
-                            <div className="col-sm text-center align-self-center">
-                                <img src={this.state.special_first} className="img-fluid" alt=""/>
-                            </div>
-                            <div className="col-sm text-center align-self-center">
-                                <img src={this.state.special_second} className="img-fluid" alt=""/>
-                            </div>
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.image_first} className="img-fluid" alt=""/>
                         </div>
-                        <div className="row" style={{height: "20px"}}>
-                            <div className="col-sm">
-                                <p className="text-center font-weight-bold">Input image</p>
-                            </div>
-                            <div className="col-sm">
-                                <p className="text-center font-weight-bold">First knee</p>
-                            </div>
-                            <div className="col-sm">
-                                <p className="text-center font-weight-bold">Second knee</p>
-                            </div>
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.image_second} className="img-fluid" alt=""/>
                         </div>
                     </div>
-                {/*</Jumbotron>*/}
+                    <div className="row" style={{height: "100px"}}>
+                        <div className="col-sm align-self-center">
+                            {}
+                        </div>
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.special_first} className="img-fluid" alt=""/>
+                        </div>
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.special_second} className="img-fluid" alt=""/>
+                        </div>
+                    </div>
+                    <div className="row" style={{height: "20px"}}>
+                        <div className="col-sm">
+                            <p className="text-center font-weight-bold">Input image</p>
+                        </div>
+                        <div className="col-sm">
+                            <p className="text-center font-weight-bold">First knee</p>
+                        </div>
+                        <div className="col-sm">
+                            <p className="text-center font-weight-bold">Second knee</p>
+                        </div>
+                    </div>
+                </div>
 
                 <Footer/>
             </div>
