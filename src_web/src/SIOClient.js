@@ -53,10 +53,11 @@ class SIOClient extends Component {
 
     render() {
         return (
-            this.state.connected ? null :
-                <div className="alert alert-danger" role="alert">
-                    Server is not connected
-                </div>
+            null
+            // this.state.connected ? null :
+            //     <div className="alert alert-danger" role="alert">
+            //         Server is not connected
+            //     </div>
         );
     }
 }

@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {Progress} from 'reactstrap';
+// import {Progress} from 'reactstrap';
 import SIOClient from './SIOClient';
 import FileUploader from './FileUploader';
 import Footer from './Footer';
