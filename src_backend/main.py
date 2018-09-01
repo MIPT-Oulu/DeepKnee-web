@@ -5,6 +5,7 @@ import json
 import logging
 import tempfile
 import base64
+from glob import glob
 
 import socketio
 import eventlet
@@ -41,13 +42,18 @@ class KneeLocalizerWrapper(object):
 
     def run(self, path_input, path_file_output):
         ret = subprocess.run((
-            'conda activate knee_localizer'
-            ' ; '
+            '. /Users/egor/Applications/miniconda3/etc/profile.d/conda.sh'
+            ' && '
+            ' conda activate knee_localizer'
+            ' && '
+            f'cd {self.path_root}'
+            ' && '
             'python'
-            f' {os.path.join(self.path_root, self.fname_script)}'
+            f' {self.fname_script}'
             f' --path_input {os.path.abspath(path_input)}'
             f' --fname_output {os.path.abspath(path_file_output)}'
         ), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        logger.debug(repr(ret))
         if ret.returncode != 0:
             msg = ("KneeLocalizer execution failed with error: ",
                    ret.stderr)
@@ -71,32 +77,41 @@ class DeepKneeWrapper(object):
         self.path_script_1 = path_script_1
         self.path_script_2 = path_script_2
 
-    def run(self, path_dicom_input, path_file_loc,
-            path_crop, path_inf):
+    def run(self, path_dicom_input, path_file_loc, path_crop, path_inf):
+        path_inf_txt = os.path.join(path_inf, 'KL_grading_results.txt')
+        path_inf_folds = '../snapshots_knee_grading'
+
         ret = subprocess.run((
-            'conda activate deep_knee'
-            ' ; '
+            '. /Users/egor/Applications/miniconda3/etc/profile.d/conda.sh'
+            ' && '
+            ' conda activate knee_localizer'
+            ' && '
             f'cd {os.path.join(self.path_root, self.path_script_0[0])}'
-            ' ; '
+            ' && '
             'python'
             f' {self.path_script_0[1]}'
             f' --data_dir {os.path.abspath(path_dicom_input)}'
             f' --save_dir {os.path.abspath(path_crop)}'
             f' --detections {os.path.abspath(path_file_loc)}'
-            ' ; '
+            ' && '
+            ' conda activate deep_knee'
+            ' && '
             f'cd {os.path.join(self.path_root, self.path_script_1[0])}'
-            ' ; '
+            ' && '
             'python'
             f' {self.path_script_1[1]}'
             f' --dataset {os.path.abspath(path_crop)}'
-            f' --save_results {os.path.abspath(path_inf)}'
-            ' ; '
+            f' --save_results {os.path.abspath(path_inf_txt)}'
+            ' && '
             f'cd {os.path.join(self.path_root, self.path_script_2[0])}'
-            ' ; '
+            ' && '
             'python'
             f' {self.path_script_2[1]}'
-            # TODO: finalize call
+            f' --path_folds {path_inf_folds}'
+            f' --path_input {os.path.abspath(path_crop)}'
+            f' --path_output {os.path.abspath(path_inf)}'
         ), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        logger.debug(repr(ret))
         if ret.returncode != 0:
             msg = ("DeepKnee execution failed with error: ",
                    ret.stderr)
@@ -110,44 +125,43 @@ module_deepknee = DeepKneeWrapper(
 )
 
 
+def _png_to_web_base64(fn):
+    web_image_prefix = 'data:image/png;base64,'
+
+    with open(fn, 'rb') as f:
+        tmp = f.read()
+    tmp = base64.b64encode(tmp).decode('ascii')
+    return web_image_prefix + tmp
+
+
 class SIONamespace(socketio.Namespace):
     def on_connect(self, sid, environ):
         logger.info('Connected: {}'.format(sid))
 
     def on_dicom_submission(self, sid, data):
-        logger.debug('Received message: {}'.format(data))
+        # logger.debug('Received message: {}'.format(data))
 
         global module_kneelocalizer
         global module_deepknee
 
-        path_raw = '/Users/egor/Workspace/p20_deep_knee_app/'
-
-        # Receive and decode DICOM image
-        data_json = json.loads(data)
-        fname_dicom = os.path.join(path_raw, 'image.png')
-        with open(fname_dicom, 'wb') as f:
-            tmp = data_json['file_blob'].split(',', 1)[1]
-            f.write(base64.b64decode(tmp))
-
-        # TODO: remove this debug statement
-        if False:
+        if True:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 # Create subfolders to store intermediate results
                 path_raw = os.path.join(tmp_dir, '00_raw')
                 path_loc = os.path.join(tmp_dir, '01_loc')
                 path_crop = os.path.join(tmp_dir, '02_crop')
                 path_inf = os.path.join(tmp_dir, '03_inf')
-                path_vis = os.path.join(tmp_dir, '04_vis')
 
-                for p in (path_raw, path_loc, path_crop, path_inf, path_vis):
+                for p in (path_raw, path_loc, path_crop, path_inf):
                     os.makedirs(p)
 
                 # Receive and decode DICOM image
                 data_json = json.loads(data)
                 fname_dicom = os.path.join(path_raw, 'image.dicom')
                 with open(fname_dicom, 'wb') as f:
-                    tmp = base64.b64decode(data_json['file_blob']).decode('utf-8')
-                    f.write(tmp)
+                    # Remove the web-content prefix
+                    tmp = data_json['file_blob'].split(',', 1)[1]
+                    f.write(base64.b64decode(tmp))
 
                 # Run knee localization
                 path_file_loc = os.path.join(path_loc, 'detection_results.txt')
@@ -161,30 +175,36 @@ class SIONamespace(socketio.Namespace):
                     path_dicom_input=path_raw,
                     path_file_loc=path_file_loc,
                     path_crop=path_crop,
-                    path_inf=path_inf,
-                    path_vis=path_vis
+                    path_inf=path_inf
                 )
+
+                # Find the files with the results
+                paths_results_heatmap = list(sorted(
+                    glob(os.path.join(path_inf, 'heatmap_*.png'))))
+                paths_results_prob = list(sorted(
+                    glob(os.path.join(path_inf, 'prob_*.png'))))
 
                 # Pack the results into JSON-message
+                # TODO: implement image_src acquisition
                 ret = json.dumps(
-                    {"image_src": "aaa",
-                     "image_first": "bbb",
-                     "image_second": "ccc",
-                     "special_first": "ddd",
-                     "special_second": "eee"}
+                    {"image_src": _png_to_web_base64(paths_results_heatmap[0]),
+                     "image_first": _png_to_web_base64(paths_results_heatmap[0]),
+                     "image_second": _png_to_web_base64(paths_results_heatmap[1]),
+                     "special_first": _png_to_web_base64(paths_results_prob[0]),
+                     "special_second": _png_to_web_base64(paths_results_prob[1])}
                 )
 
-        web_image_prefix = 'data:image/png;base64,'
-        ret = json.dumps(
-            {"image_src": 'aaa',
-             "image_first": 'bbb',
-             "image_second": 'ccc',
-             "special_first": 'ddd',
-             "special_second": 'eee'}
-        )
+        # path_debug = '/Users/egor/Desktop/Screen Shot 2018-09-01 at 19.59.40.png'
+        # ret = json.dumps(
+        #     {"image_src": _png_to_web_base64(path_debug),
+        #      "image_first": _png_to_web_base64(path_debug),
+        #      "image_second": _png_to_web_base64(path_debug),
+        #      "special_first": _png_to_web_base64(path_debug),
+        #      "special_second": _png_to_web_base64(path_debug)}
+        # )
 
         # Send out the results
-        logger.debug('Returning: {}'.format(ret))
+        # logger.debug('Returning: {}'.format(ret))
         self.emit('dicom_processing', ret)
 
     def on_disconnect(self, sid):
