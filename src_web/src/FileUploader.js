@@ -3,7 +3,7 @@ import React, {Component} from "react";
 class FileUploader extends Component {
     constructor(props) {
         super(props);
-        this.state = {file_name: '',};
+        this.state = {file_name: ''};
 
         this.handleFileChosen = this.handleFileChosen.bind(this);
         this.handleFileSubmitted = this.handleFileSubmitted.bind(this);
@@ -19,7 +19,9 @@ class FileUploader extends Component {
     }
 
     handleFileSubmitted(event) {
-        let file = document.querySelector('input[id=inputGroupFile]').files[0];
+        let file_input = document.querySelector('input[id=inputGroupFile]');
+        let file = file_input.files[0];
+
         let reader = new FileReader();
 
         reader.onloadend = () => {
@@ -33,6 +35,8 @@ class FileUploader extends Component {
             // };
             console.log('File loaded');
             this.props.onFileSubmission(blob);
+
+            file_input.value = "";
             this.setState({file_name: ''});
         };
         // Read file as base64 string
