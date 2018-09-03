@@ -156,11 +156,10 @@ class SIONamespace(socketio.Namespace):
                     os.makedirs(p)
 
                 # Receive and decode DICOM image
-                data_json = json.loads(data)
                 fname_dicom = os.path.join(path_raw, 'image.dicom')
                 with open(fname_dicom, 'wb') as f:
                     # Remove the web-content prefix
-                    tmp = data_json['file_blob'].split(',', 1)[1]
+                    tmp = data['file_blob'].split(',', 1)[1]
                     f.write(base64.b64decode(tmp))
 
                 # Run knee localization
