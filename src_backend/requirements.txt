@@ -1,3 +1,5 @@
 socketio
 eventlet
 flask
+numpy
+imageio

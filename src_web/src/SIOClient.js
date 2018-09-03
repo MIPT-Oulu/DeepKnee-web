@@ -1,6 +1,5 @@
-import {Component} from "react";
+import React, {Component} from "react";
 import socketIOClient from "socket.io-client";
-import React from "react";
 
 class SIOClient extends Component {
     constructor(props) {
@@ -31,21 +30,11 @@ class SIOClient extends Component {
         }
         // Results updated
         if (this.state.response !== prevState.response) {
-            const response_raw = this.state.response;
-            const response_obj = JSON.parse(response_raw);
-            let ret = {
-                server_status: "OK!",
-                server_response: response_raw,
-                image_src: response_obj.image_src,
-                image_first: response_obj.image_first,
-                image_second: response_obj.image_second,
-                special_first: response_obj.special_first,
-                special_second: response_obj.special_second,
-            };
+            const response = this.state.response;
             console.log('Message received');
-            // console.log(ret);
+            // console.log(response);
             // Lift up the update
-            this.props.onServerResponse(ret);
+            this.props.onServerResponse(response);
         }
     }
 

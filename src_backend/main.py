@@ -1,11 +1,14 @@
 import os
 import argparse
 import subprocess
-import json
 import logging
 import tempfile
 import base64
 from glob import glob
+from io import BytesIO
+
+import imageio
+import numpy as np
 
 import socketio
 import eventlet
@@ -125,11 +128,20 @@ module_deepknee = DeepKneeWrapper(
 )
 
 
-def _png_to_web_base64(fn):
+def _png_to_web_base64(fn, fliplr=False):
     web_image_prefix = 'data:image/png;base64,'
 
-    with open(fn, 'rb') as f:
-        tmp = f.read()
+    if fliplr:
+        image = imageio.imread(fn)
+        image = np.fliplr(image)
+        tmp_file = BytesIO()
+        imageio.imwrite(tmp_file, image, format='png')
+        tmp_file.seek(0)
+        tmp = tmp_file.read()
+    else:
+        with open(fn, 'rb') as f:
+            tmp = f.read()
+
     tmp = base64.b64encode(tmp).decode('ascii')
     return web_image_prefix + tmp
 
@@ -178,6 +190,8 @@ class SIONamespace(socketio.Namespace):
                 )
 
                 # Find the files with the results
+                paths_results_raw = list(sorted(
+                    glob(os.path.join(path_crop, '**', '*.png'))))
                 paths_results_heatmap = list(sorted(
                     glob(os.path.join(path_inf, 'heatmap_*.png'))))
                 paths_results_prob = list(sorted(
@@ -185,13 +199,15 @@ class SIONamespace(socketio.Namespace):
 
                 # Pack the results into JSON-message
                 # TODO: implement image_src acquisition
-                ret = json.dumps(
-                    {"image_src": _png_to_web_base64(paths_results_heatmap[0]),
-                     "image_first": _png_to_web_base64(paths_results_heatmap[0]),
-                     "image_second": _png_to_web_base64(paths_results_heatmap[1]),
-                     "special_first": _png_to_web_base64(paths_results_prob[0]),
-                     "special_second": _png_to_web_base64(paths_results_prob[1])}
-                )
+                # "image_src": _png_to_web_base64(paths_results_heatmap[0]),
+                ret = {
+                    "image_1st_raw": _png_to_web_base64(paths_results_raw[0], fliplr=True),
+                    "image_2nd_raw": _png_to_web_base64(paths_results_raw[1]),
+                    "image_1st_heatmap": _png_to_web_base64(paths_results_heatmap[0], fliplr=True),
+                    "image_2nd_heatmap": _png_to_web_base64(paths_results_heatmap[1]),
+                    "special_1st": _png_to_web_base64(paths_results_prob[0]),
+                    "special_2nd": _png_to_web_base64(paths_results_prob[1])
+                }
 
         # path_debug = '/Users/egor/Desktop/Screen Shot 2018-09-01 at 19.59.40.png'
         # ret = json.dumps(
