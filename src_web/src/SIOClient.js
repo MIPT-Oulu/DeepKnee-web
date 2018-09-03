@@ -25,10 +25,9 @@ class SIOClient extends Component {
                 file_blob: this.props.file_blob,
             };
 
-            this.socket.emit('dicom_submission', JSON.stringify(blob));
-            // TODO: cleanup
-            console.log('Sent: ');
-            console.log(this.props.file_blob);
+            this.socket.emit('dicom_submission', blob);
+            console.log('Message sent');
+            // console.log(blob);
         }
         // Results updated
         if (this.state.response !== prevState.response) {
@@ -43,9 +42,8 @@ class SIOClient extends Component {
                 special_first: response_obj.special_first,
                 special_second: response_obj.special_second,
             };
-            // TODO: cleanup
-            console.log('Received:');
-            console.log(ret);
+            console.log('Message received');
+            // console.log(ret);
             // Lift up the update
             this.props.onServerResponse(ret);
         }

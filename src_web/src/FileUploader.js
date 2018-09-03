@@ -32,7 +32,7 @@ class FileUploader extends Component {
             //     file_name: "Nothing",
             //     file_blob: "Dummy data"
             // };
-
+            console.log('File loaded');
             this.props.onFileSubmission(blob);
             this.setState({file_name: ''});
         };
