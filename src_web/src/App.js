@@ -14,12 +14,14 @@ class App extends Component {
             file_name: null,
             file_blob: null,
 
-            image_src: null,
-            image_first: null,
-            image_second: null,
-            special_src: null,
-            special_first: null,
-            special_second: null,
+            // image_src: null,
+            // special_src: null,
+            image_1st_raw: null,
+            image_2nd_raw: null,
+            image_1st_heatmap: null,
+            image_2nd_heatmap: null,
+            special_1st: null,
+            special_2nd: null,
         };
 
         this.handleFileSubmission = this.handleFileSubmission.bind(this);
@@ -37,12 +39,14 @@ class App extends Component {
         this.setState({
             server_status: data.server_status,
             server_response: data.server_response,
-            image_src: data.image_src,
-            image_first: data.image_first,
-            image_second: data.image_second,
-            special_src: data.special_src,
-            special_first: data.special_first,
-            special_second: data.special_second,
+            // image_src: data.image_src,
+            // special_src: data.special_src,
+            image_1st_raw: data.image_1st_raw,
+            image_2nd_raw: data.image_2nd_raw,
+            image_1st_heatmap: data.image_1st_heatmap,
+            image_2nd_heatmap: data.image_2nd_heatmap,
+            special_1st: data.special_1st,
+            special_2nd: data.special_2nd,
         });
     }
 
@@ -68,33 +72,30 @@ class App extends Component {
 
                 <hr />
 
-                <div className="container" style={{visibility: this.state.image_first == null ? "hidden" : ""}}>
-                    <div className="row" style={{height: "400px"}}>
+                <div className="container" style={{visibility: this.state.image_1st_raw == null ? "hidden" : ""}}>
+                    <div className="row" style={{height: "450px"}}>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_src} className="img-fluid" alt=""/>
+                            <img src={this.state.image_1st_raw} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_first} className="img-fluid" alt=""/>
+                            <img src={this.state.image_1st_heatmap} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_second} className="img-fluid" alt=""/>
+                            <img src={this.state.image_2nd_heatmap} className="img-fluid" alt=""/>
+                        </div>
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.image_2nd_raw} className="img-fluid" alt=""/>
                         </div>
                     </div>
                     <div className="row" style={{height: "100px"}}>
-                        <div className="col-sm align-self-center">
-                            {}
+                        <div className="col-sm text-center align-self-center">
+                            <img src={this.state.special_1st} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.special_first} className="img-fluid" alt=""/>
-                        </div>
-                        <div className="col-sm text-center align-self-center">
-                            <img src={this.state.special_second} className="img-fluid" alt=""/>
+                            <img src={this.state.special_2nd} className="img-fluid" alt=""/>
                         </div>
                     </div>
                     <div className="row" style={{height: "20px"}}>
-                        <div className="col-sm">
-                            <p className="text-center font-weight-bold">Input image</p>
-                        </div>
                         <div className="col-sm">
                             <p className="text-center font-weight-bold">First knee</p>
                         </div>

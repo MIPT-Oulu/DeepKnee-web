@@ -9,11 +9,19 @@ class SIOClient extends Component {
             response: null,
             connected: false,
         };
-        this.socket = socketIOClient(this.state.endpoint);
+        this.socket = socketIOClient(this.state.endpoint,
+            {
+                reconnection: true,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 5000,
+                reconnectionAttempts: Infinity
+            });
     }
 
     componentDidMount() {
         this.socket.on("dicom_processing", data => this.setState({ response: data }));
+        this.socket.on("connect", () => this.setState({connected: true}));
+        this.socket.on("disconnect", () => this.setState({connected: false}));
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -40,11 +48,10 @@ class SIOClient extends Component {
 
     render() {
         return (
-            null
-            // this.state.connected ? null :
-            //     <div className="alert alert-danger" role="alert">
-            //         Server is not connected
-            //     </div>
+            this.state.connected ? null :
+                <div className="alert alert-danger" role="alert">
+                    Server is not connected
+                </div>
         );
     }
 }
