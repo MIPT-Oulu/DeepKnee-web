@@ -73,7 +73,15 @@ class App extends Component {
                 <hr />
 
                 <div className="container" style={{visibility: this.state.image_1st_raw == null ? "hidden" : ""}}>
-                    <div className="row" style={{height: "450px"}}>
+                    <div className="row" style={{height: "20px"}}>
+                        <div className="col-sm">
+                            <p className="text-center font-weight-bold">Left knee</p>
+                        </div>
+                        <div className="col-sm">
+                            <p className="text-center font-weight-bold">Right knee</p>
+                        </div>
+                    </div>
+                    <div className="row" style={{height: "400px"}}>
                         <div className="col-sm text-center align-self-center">
                             <img src={this.state.image_1st_raw} className="img-fluid" alt=""/>
                         </div>
@@ -81,10 +89,10 @@ class App extends Component {
                             <img src={this.state.image_1st_heatmap} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_2nd_heatmap} className="img-fluid" alt=""/>
+                            <img src={this.state.image_2nd_raw} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_2nd_raw} className="img-fluid" alt=""/>
+                            <img src={this.state.image_2nd_heatmap} className="img-fluid" alt=""/>
                         </div>
                     </div>
                     <div className="row" style={{height: "100px"}}>
@@ -93,14 +101,6 @@ class App extends Component {
                         </div>
                         <div className="col-sm text-center align-self-center">
                             <img src={this.state.special_2nd} className="img-fluid" alt=""/>
-                        </div>
-                    </div>
-                    <div className="row" style={{height: "20px"}}>
-                        <div className="col-sm">
-                            <p className="text-center font-weight-bold">First knee</p>
-                        </div>
-                        <div className="col-sm">
-                            <p className="text-center font-weight-bold">Second knee</p>
                         </div>
                     </div>
                 </div>
