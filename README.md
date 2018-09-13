@@ -8,46 +8,46 @@ Installation
 
 0. Before going through the next steps, make sure to install `Conda`, `Node.js`;
 1. Clone the repository:
-    ```
-    git clone --recurse-submodules git@github.com:MIPT-Oulu/DeepKnee-web.git
-    cd DeepKnee-web
-    ```
+```bash
+git clone --recurse-submodules git@github.com:MIPT-Oulu/DeepKnee-web.git
+cd DeepKnee-web
+```
 2. Configure the environment:
-    ```
-    # Create the environment
-    cd src_backend
-    chmod u+x create_conda_env.sh
-    ./create_conda_env.sh
-    source activate deep_knee_web
-    cd ..
-    
-    # Install KneeLocalizer
-    cd src_kneelocalizer
-    pip install .
-    cd ..
-    
-    # Install DeepKnee
-    # WIP
-    # cd src_deepknee
-    # cd ..
-    
-    # Install the webserver dependencies
-    cd src_web
-    npm install
-    cd ..
-    ```
+```bash
+# Create the environment
+cd src_backend
+chmod u+x create_conda_env.sh
+./create_conda_env.sh
+source activate deep_knee_web
+cd ..
+
+# Install KneeLocalizer
+cd src_kneelocalizer
+pip install .
+cd ..
+
+# Install DeepKnee
+# WIP
+# cd src_deepknee
+# cd ..
+
+# Install the webserver dependencies
+cd src_web
+npm install
+cd ..
+```
 
 Running
 -------
 
 To run the webservice:
-```
+```bash
 # Start backend
-cd src_backend; python main.py &; cd ..
+cd src_backend; python main.py &
 
 # Start web interface
 # WIP
-cd src_web; npm start &; cd ..
+cd ../src_web; npm start &
 ```
 
 License
