@@ -5,7 +5,7 @@ class SIOClient extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            endpoint: "http://0.0.0.0:8000",
+            endpoint: "http://mipt-ml.oulu.fi:5000",
             response: null,
             connected: false,
         };
