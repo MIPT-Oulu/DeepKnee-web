@@ -1,6 +1,5 @@
 import os
 import argparse
-import subprocess
 import logging
 import tempfile
 import base64
@@ -9,10 +8,17 @@ from io import BytesIO
 
 import imageio
 import numpy as np
+import torch
 
 import socketio
 import eventlet
 from flask import Flask
+
+from oulukneeloc.detector import KneeLocalizer
+from oulukneeloc.proposals import read_dicom, preprocess_xray
+from ouludeepknee.own_codes.produce_gradcam import (
+    KneeNetEnsemble, SNAPSHOTS_EXPS, SNAPSHOTS_KNEE_GRADING)
+from ouludeepknee.dataset.xray_processor import process_file_or_image
 
 
 logging.basicConfig()
@@ -24,108 +30,67 @@ def parse_args():
     p = argparse.ArgumentParser()
     p.add_argument('--path_proj_root', required=False,
                    default='../')
-    p.add_argument('--path_logs', required=False,
-                   default='../logs')
-    p.add_argument('--debug', required=False, default=False,
-                   action='store_true')
 
     args = p.parse_args()
     args.path_proj_root = os.path.abspath(args.path_proj_root)
-    args.path_logs = os.path.abspath(args.path_logs)
     return args
 
 
 config = parse_args()
 
 
-class KneeLocalizerWrapper(object):
-    def __init__(self, path_root, fname_script='detector.py'):
-        self.path_root = path_root
-        self.fname_script = fname_script
+class KneeWrapper(object):
+    def __init__(self):
+        self._kneeloc = KneeLocalizer()
 
-    def run(self, path_input, path_file_output):
-        ret = subprocess.run((
-            '. /Users/egor/Applications/miniconda3/etc/profile.d/conda.sh'
-            ' && '
-            ' conda activate knee_localizer'
-            ' && '
-            f'cd {self.path_root}'
-            ' && '
-            'python'
-            f' {self.fname_script}'
-            f' --path_input {os.path.abspath(path_input)}'
-            f' --fname_output {os.path.abspath(path_file_output)}'
-        ), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        logger.debug(repr(ret))
-        if ret.returncode != 0:
-            msg = ("KneeLocalizer execution failed with error: ",
-                   ret.stderr)
-            logger.error(msg)
+        nets_snapshots_names = []
+        for snp in SNAPSHOTS_EXPS:
+            nets_snapshots_names.extend(
+                glob(os.path.join(config.path_folds, snp, '*.pth')))
+        self._deepknee = KneeNetEnsemble(
+            snapshots_paths=nets_snapshots_names,
+            mean_std_path=os.path.join(SNAPSHOTS_KNEE_GRADING, 'mean_std.npy'))
+        del nets_snapshots_names
+
+    def run(self, path_raw, path_crop, path_inf):
+        # Find all DICOM files in the provided path
+        fnames = glob(os.path.join(path_raw, '*'))
+        fnames = [os.path.basename(e) for e in fnames]
+        fname = fnames[0]
+
+        # Read and preprocess DICOM
+        tmp = read_dicom(fname)
+        if tmp is None:
+            logger.error('Error reading DICOM')
             return False
-        return True
-
-
-module_kneelocalizer = KneeLocalizerWrapper(
-    path_root=os.path.join(config.path_proj_root, 'src_kneelocalizer')
-)
-
-
-class DeepKneeWrapper(object):
-    def __init__(self, path_root,
-                 path_script_0=('Dataset', 'crop_rois_your_dataset.py'),
-                 path_script_1=('own_codes', 'predict.py'),
-                 path_script_2=('own_codes', 'produce_gradcam.py')):
-        self.path_root = path_root
-        self.path_script_0 = path_script_0
-        self.path_script_1 = path_script_1
-        self.path_script_2 = path_script_2
-
-    def run(self, path_dicom_input, path_file_loc, path_crop, path_inf):
-        path_inf_txt = os.path.join(path_inf, 'KL_grading_results.txt')
-        path_inf_folds = '../snapshots_knee_grading'
-
-        ret = subprocess.run((
-            '. /Users/egor/Applications/miniconda3/etc/profile.d/conda.sh'
-            ' && '
-            ' conda activate knee_localizer'
-            ' && '
-            f'cd {os.path.join(self.path_root, self.path_script_0[0])}'
-            ' && '
-            'python'
-            f' {self.path_script_0[1]}'
-            f' --data_dir {os.path.abspath(path_dicom_input)}'
-            f' --save_dir {os.path.abspath(path_crop)}'
-            f' --detections {os.path.abspath(path_file_loc)}'
-            ' && '
-            ' conda activate deep_knee'
-            ' && '
-            f'cd {os.path.join(self.path_root, self.path_script_1[0])}'
-            ' && '
-            'python'
-            f' {self.path_script_1[1]}'
-            f' --dataset {os.path.abspath(path_crop)}'
-            f' --save_results {os.path.abspath(path_inf_txt)}'
-            ' && '
-            f'cd {os.path.join(self.path_root, self.path_script_2[0])}'
-            ' && '
-            'python'
-            f' {self.path_script_2[1]}'
-            f' --path_folds {path_inf_folds}'
-            f' --path_input {os.path.abspath(path_crop)}'
-            f' --path_output {os.path.abspath(path_inf)}'
-        ), shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        logger.debug(repr(ret))
-        if ret.returncode != 0:
-            msg = ("DeepKnee execution failed with error: ",
-                   ret.stderr)
-            logger.error(msg)
+        if len(tmp) != 2:
+            logger.error('Invalid results of DICOM reading')
             return False
-        return True
+        img, spacing = tmp
+        img = preprocess_xray(img)
+
+        # Knee localization
+        det_l, det_r = self._kneeloc.predict(fileobj=img, spacing=spacing)
+        det_both = det_l + det_r
+        logger.debug('KneeLocalizer results:\n{}, {}'
+                     .format(repr(det_l), repr(det_r)))
+
+        # Image cropping
+        knee_l, knee_r = process_file_or_image(
+            image=None, spacing=spacing,
+            save_dir=path_crop, bbox=det_both, gradeL=5, gradeR=5,
+            sizemm=140, pad=300, save_vis=True)
+
+        # Knee grading
+        self._deepknee.predict_save(fileobj_in=knee_l, nbits=16,
+                                    fname_suffix='0',
+                                    path_dir_out=path_inf)
+        self._deepknee.predict_save(fileobj_in=knee_r, nbits=16,
+                                    fname_suffix='1',
+                                    path_dir_out=path_inf)
 
 
-module_deepknee = DeepKneeWrapper(
-    path_root=os.path.join(config.path_proj_root, 'src_deepknee')
-)
+knee_wrapper = KneeWrapper()
 
 
 def _png_to_web_base64(fn, fliplr=False):
@@ -153,18 +118,16 @@ class SIONamespace(socketio.Namespace):
     def on_dicom_submission(self, sid, data):
         # logger.debug('Received message: {}'.format(data))
 
-        global module_kneelocalizer
-        global module_deepknee
+        global knee_wrapper
 
         if True:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 # Create subfolders to store intermediate results
                 path_raw = os.path.join(tmp_dir, '00_raw')
-                path_loc = os.path.join(tmp_dir, '01_loc')
-                path_crop = os.path.join(tmp_dir, '02_crop')
-                path_inf = os.path.join(tmp_dir, '03_inf')
+                path_crop = os.path.join(tmp_dir, '01_crop')
+                path_inf = os.path.join(tmp_dir, '02_inf')
 
-                for p in (path_raw, path_loc, path_crop, path_inf):
+                for p in (path_raw, path_crop, path_inf):
                     os.makedirs(p)
 
                 # Receive and decode DICOM image
@@ -174,17 +137,9 @@ class SIONamespace(socketio.Namespace):
                     tmp = data['file_blob'].split(',', 1)[1]
                     f.write(base64.b64decode(tmp))
 
-                # Run knee localization
-                path_file_loc = os.path.join(path_loc, 'detection_results.txt')
-                module_kneelocalizer.run(
-                    path_input=path_raw,
-                    path_file_output=path_file_loc
-                )
-
-                # Run grading
-                module_deepknee.run(
-                    path_dicom_input=path_raw,
-                    path_file_loc=path_file_loc,
+                # Run knee localization and grading
+                knee_wrapper.run(
+                    path_raw=path_raw,
                     path_crop=path_crop,
                     path_inf=path_inf
                 )
