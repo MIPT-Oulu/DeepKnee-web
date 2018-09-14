@@ -4,6 +4,7 @@ from flask import Flask, send_from_directory
 
 app = Flask(__name__, static_folder='build')
 
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -14,4 +15,5 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='mipt-ml.oulu.fi', use_reloader=False, debug=True, port=5001, threaded=True)
+    app.run(host='', use_reloader=False, debug=True, port=5001, threaded=True)
+    # app.run(host='mipt-ml.oulu.fi', use_reloader=False, debug=True, port=5001, threaded=True)
