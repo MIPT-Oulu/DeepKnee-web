@@ -6,6 +6,8 @@ import base64
 from glob import glob
 from io import BytesIO
 
+import matplotlib
+matplotlib.use('Agg')
 import imageio
 import numpy as np
 import torch
@@ -46,7 +48,7 @@ class KneeWrapper(object):
         nets_snapshots_names = []
         for snp in SNAPSHOTS_EXPS:
             nets_snapshots_names.extend(
-                glob(os.path.join(config.path_folds, snp, '*.pth')))
+                glob(os.path.join(SNAPSHOTS_KNEE_GRADING, snp, '*.pth')))
         self._deepknee = KneeNetEnsemble(
             snapshots_paths=nets_snapshots_names,
             mean_std_path=os.path.join(SNAPSHOTS_KNEE_GRADING, 'mean_std.npy'))
@@ -190,4 +192,4 @@ sio.register_namespace(SIONamespace())
 app = socketio.Middleware(sio, app)
 
 # Deploy as an eventlet WSGI server
-eventlet.wsgi.server(eventlet.listen(('', 8000)), app)
+eventlet.wsgi.server(eventlet.listen(('mipt-ml.oulu.fi', 5000)), app)
