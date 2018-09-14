@@ -15,11 +15,9 @@ cd DeepKnee-web
 2. Configure the environment:
 ```bash
 # Create the environment
-cd src_backend
 chmod u+x create_conda_env.sh
 ./create_conda_env.sh
 source activate deep_knee_web
-cd ..
 
 # Install KneeLocalizer
 cd src_kneelocalizer
