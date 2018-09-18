@@ -1,7 +1,7 @@
 import React, {Component} from 'react';
-// import {Progress} from 'reactstrap';
 import SIOClient from './SIOClient';
 import FileUploader from './FileUploader';
+import ProgressBar from './ProgressBar';
 import Footer from './Footer';
 
 class App extends Component {
@@ -10,6 +10,7 @@ class App extends Component {
         this.state = {
             server_status: 'undefined',
             server_response: null,
+            is_waiting_response: false,
 
             file_name: null,
             file_blob: null,
@@ -30,6 +31,8 @@ class App extends Component {
 
     handleFileSubmission(data) {
         this.setState({
+            is_waiting_response: true,
+
             file_name: data.file_name,
             file_blob: data.file_blob
         });
@@ -39,6 +42,8 @@ class App extends Component {
         this.setState({
             server_status: data.server_status,
             server_response: data.server_response,
+            is_waiting_response: false,
+
             // image_src: data.image_src,
             // special_src: data.special_src,
             image_1st_raw: data.image_1st_raw,
@@ -63,14 +68,11 @@ class App extends Component {
                     onFileSubmission={this.handleFileSubmission}
                 />
 
-                {/*<Progress multi>*/}
-                    {/*<Progress bar value="10"> Image uploading </Progress>*/}
-                    {/*<Progress bar color="danger" value="20"> Knee localization </Progress>*/}
-                    {/*<Progress bar color="warning" value="40"> Deep Knee </Progress>*/}
-                    {/*<Progress bar color="success" value="20"> Gradcam </Progress>*/}
-                {/*</Progress>*/}
-
                 <hr />
+
+                {this.state.is_waiting_response &&
+                    <ProgressBar/>
+                }
 
                 <div className="container" style={{visibility: this.state.image_1st_raw == null ? "hidden" : ""}}>
                     <div className="row" style={{height: "20px"}}>
