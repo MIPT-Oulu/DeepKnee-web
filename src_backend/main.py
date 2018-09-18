@@ -1,4 +1,5 @@
 import os
+from _datetime import datetime
 import argparse
 import logging
 import tempfile
@@ -58,6 +59,8 @@ class KneeWrapper(object):
         fname = glob(os.path.join(path_raw, '*'))[0]
 
         # Read and preprocess DICOM
+        logger.debug('Pre-pread')
+        logger.debug(repr(datetime.now()))
         tmp = read_dicom(fname)
         if tmp is None:
             logger.error('Error reading DICOM')
@@ -66,6 +69,8 @@ class KneeWrapper(object):
             logger.error('Invalid results of DICOM reading')
             return False
         img, spacing = tmp
+        logger.debug('Post-read')
+        logger.debug(repr(datetime.now()))
         img_prep = preprocess_xray(img)
         logger.info('DICOM read')
 
@@ -74,6 +79,7 @@ class KneeWrapper(object):
                                             spacing=spacing)
         det_both = det_l + det_r
         logger.info('Localization finished')
+        logger.debug(repr(datetime.now()))
 
         # Image cropping
         knee_l, knee_r = process_file_or_image(
@@ -81,6 +87,7 @@ class KneeWrapper(object):
             save_dir=path_crop, bbox=det_both, gradeL=5, gradeR=5,
             save_vis=True)
         logger.info('Cropping finished')
+        logger.debug(repr(datetime.now()))
 
         # Knee grading
         self.deepknee.predict_save(fileobj_in=knee_l, nbits=16,
@@ -88,10 +95,12 @@ class KneeWrapper(object):
                                    path_dir_out=path_inf,
                                    fliplr=True)
         logger.info('Grading L finished')
+        logger.debug(repr(datetime.now()))
         self.deepknee.predict_save(fileobj_in=knee_r, nbits=16,
                                    fname_suffix='1',
                                    path_dir_out=path_inf)
         logger.info('Grading R finished')
+        logger.debug(repr(datetime.now()))
 
 
 knee_wrapper = KneeWrapper()
@@ -122,6 +131,7 @@ class SIONamespace(socketio.Namespace):
     def on_dicom_submission(self, sid, data):
         # logger.debug('Received message: {}'.format(data))
         logger.info('Message received')
+        logger.debug(repr(datetime.now()))
 
         global knee_wrapper
 
@@ -136,13 +146,24 @@ class SIONamespace(socketio.Namespace):
                 os.makedirs(p)
 
             # Receive and decode DICOM image
+            logger.debug('Pre-write')
+            logger.debug(repr(datetime.now()))
             fname_dicom = os.path.join(path_raw, 'image.dicom')
             with open(fname_dicom, 'wb') as f:
                 # Remove the web-content prefix
                 tmp = data['file_blob'].split(',', 1)[1]
-                f.write(base64.b64decode(tmp))
+                logger.debug('Pre-decode')
+                logger.debug(repr(datetime.now()))
+                tmp_dec = base64.b64decode(tmp)
+                logger.debug('Post-decode')
+                logger.debug(repr(datetime.now()))
+                f.write(tmp_dec)
+                logger.debug('Post-write')
+                logger.debug(repr(datetime.now()))
+                # f.write(base64.b64decode(tmp))
 
             logger.info('Message decoded')
+            logger.debug(repr(datetime.now()))
 
             # Run knee localization and grading
             knee_wrapper.run(
