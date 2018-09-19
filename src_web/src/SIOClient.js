@@ -5,10 +5,8 @@ class SIOClient extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            // endpoint: "http://mipt-ml.oulu.fi:5000",
             endpoint: "http://0.0.0.0:5000",
-            response: null,
-            connected: false,
+            // endpoint: "http://mipt-ml.oulu.fi:5000",
         };
         this.socket = socketIOClient(this.state.endpoint,
             {
@@ -20,9 +18,10 @@ class SIOClient extends Component {
     }
 
     componentDidMount() {
-        this.socket.on("dicom_processing", data => this.setState({ response: data }));
-        this.socket.on("connect", () => this.setState({connected: true}));
-        this.socket.on("disconnect", () => this.setState({connected: false}));
+        this.socket.on("dicom_received", data => this.props.onDicomReceived(data));
+        this.socket.on("dicom_processed", data => this.props.onDicomProcessed(data));
+        this.socket.on("connect", () => this.props.onServerConnected());
+        this.socket.on("disconnect", () => this.props.onServerDisconnected());
     }
 
     componentDidUpdate(prevProps, prevState) {
@@ -34,22 +33,14 @@ class SIOClient extends Component {
             };
 
             this.socket.emit('dicom_submission', blob);
-            console.log('Message sent');
+            this.props.onDicomSent();
             // console.log(blob);
-        }
-        // Results updated
-        if (this.state.response !== prevState.response) {
-            const response = this.state.response;
-            console.log('Message received');
-            // console.log(response);
-            // Lift up the update
-            this.props.onServerResponse(response);
         }
     }
 
     render() {
         return (
-            this.state.connected ? null :
+            this.props.connected ? null :
                 <div className="alert alert-danger" role="alert">
                     Server is not connected
                 </div>

@@ -1,16 +1,16 @@
 import React, {Component} from 'react';
 import SIOClient from './SIOClient';
 import FileUploader from './FileUploader';
-import ProgressBar from './ProgressBar';
+import ProgressCircularBar from './ProgressCircularBar';
 import Footer from './Footer';
 
 class App extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            server_status: 'undefined',
+            server_connected: false,
+            server_status: null,
             server_response: null,
-            is_waiting_response: false,
 
             file_name: null,
             file_blob: null,
@@ -26,7 +26,12 @@ class App extends Component {
         };
 
         this.handleFileSubmission = this.handleFileSubmission.bind(this);
-        this.handleServerResponse = this.handleServerResponse.bind(this);
+
+        this.handleDicomSent = this.handleDicomSent.bind(this);
+        this.handleDicomReceived = this.handleDicomReceived.bind(this);
+        this.handleDicomProcessed = this.handleDicomProcessed.bind(this);
+        this.handleServerConnected = this.handleServerConnected.bind(this);
+        this.handleServerDisconnected = this.handleServerDisconnected.bind(this);
     }
 
     handleFileSubmission(data) {
@@ -38,11 +43,24 @@ class App extends Component {
         });
     }
 
-    handleServerResponse(data) {
+    handleDicomSent(data) {
         this.setState({
-            server_status: data.server_status,
+            server_status: "dicom_sent",
+        });
+        console.log("Sent");
+    }
+
+    handleDicomReceived(data) {
+        this.setState({
+            server_status: "dicom_received",
+        });
+        console.log("Received");
+    }
+
+    handleDicomProcessed(data) {
+        this.setState({
+            server_status: "dicom_processed",
             server_response: data.server_response,
-            is_waiting_response: false,
 
             // image_src: data.image_src,
             // special_src: data.special_src,
@@ -53,15 +71,37 @@ class App extends Component {
             special_1st: data.special_1st,
             special_2nd: data.special_2nd,
         });
+        console.log("Processed");
+    }
+
+    handleServerConnected() {
+        this.setState({
+            server_connected: true,
+            server_status: 'standby',
+        });
+    }
+
+    handleServerDisconnected() {
+        this.setState({
+            server_connected: false,
+            server_status: 'standby',
+        });
     }
 
     render() {
+        const state = this.state;
         return (
             <div className="col">
                 <SIOClient
-                    file_name={this.state.file_name}
-                    file_blob={this.state.file_blob}
-                    onServerResponse={this.handleServerResponse}
+                    file_name={state.file_name}
+                    file_blob={state.file_blob}
+                    connected={state.server_connected}
+                    response={state.server_response}
+                    onDicomSent={this.handleDicomSent}
+                    onDicomReceived={this.handleDicomReceived}
+                    onDicomProcessed={this.handleDicomProcessed}
+                    onServerConnected={this.handleServerConnected}
+                    onServerDisconnected={this.handleServerDisconnected}
                 />
 
                 <FileUploader
@@ -70,11 +110,14 @@ class App extends Component {
 
                 <hr />
 
-                {this.state.is_waiting_response &&
-                    <ProgressBar/>
-                }
+                {state.server_status === "dicom_sent" &&
+                <ProgressCircularBar alternative={"blue"} text={"Sending the file..."} />}
 
-                <div className="container" style={{visibility: this.state.image_1st_raw == null ? "hidden" : ""}}>
+                {state.server_status === "dicom_received" &&
+                <ProgressCircularBar alternative={"green"} text={"Analyzing the image..."} />}
+
+                {state.server_status === "dicom_processed" &&
+                <div className="container" style={{visibility: state.image_1st_raw == null ? "hidden" : ""}}>
                     <div className="row" style={{height: "20px"}}>
                         <div className="col-sm">
                             <p className="text-center font-weight-bold">Left knee</p>
@@ -85,27 +128,28 @@ class App extends Component {
                     </div>
                     <div className="row" style={{height: "400px"}}>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_1st_raw} className="img-fluid" alt=""/>
+                            <img src={state.image_1st_raw} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_1st_heatmap} className="img-fluid" alt=""/>
+                            <img src={state.image_1st_heatmap} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_2nd_raw} className="img-fluid" alt=""/>
+                            <img src={state.image_2nd_raw} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.image_2nd_heatmap} className="img-fluid" alt=""/>
+                            <img src={state.image_2nd_heatmap} className="img-fluid" alt=""/>
                         </div>
                     </div>
                     <div className="row" style={{height: "100px"}}>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.special_1st} className="img-fluid" alt=""/>
+                            <img src={state.special_1st} className="img-fluid" alt=""/>
                         </div>
                         <div className="col-sm text-center align-self-center">
-                            <img src={this.state.special_2nd} className="img-fluid" alt=""/>
+                            <img src={state.special_2nd} className="img-fluid" alt=""/>
                         </div>
                     </div>
                 </div>
+                }
 
                 <Footer/>
             </div>

@@ -15,26 +15,36 @@ const styles = {
     },
 };
 
-function ProgressBar(props) {
+function ProgressLineBar(props) {
   const { classes } = props;
-  return (
-    <div className={classes.root} align="center">
-      <LinearProgress
-        classes={{
-            colorPrimary: classes.colorPrimary,
-            barColorPrimary: classes.barColorPrimary,
-        }}
-        style={{height: "8px", width: "50%"}}
-      />
-    </div>
-  );
+  if (props.alternative === "green") {
+      return (
+          <div className={classes.root} align="center">
+              <LinearProgress
+                  classes={{
+                      colorPrimary: classes.colorPrimary,
+                      barColorPrimary: classes.barColorPrimary,
+                  }}
+                  style={{height: "8px", width: "50%"}}
+              />
+          </div>
+      );
+  } else if (props.alternative === "blue") {
+      return (
+          <div align="center">
+              <LinearProgress
+                  style={{color: "primary", height: "8px", width: "50%"}}
+          />
+          </div>
+      );
+  }
 }
 
-ProgressBar.propTypes = {
+ProgressLineBar.propTypes = {
   classes: PropTypes.object.isRequired,
 };
 
-export default withStyles(styles)(ProgressBar);
+export default withStyles(styles)(ProgressLineBar);
 
 // const styles = {
 //     root: {
@@ -48,7 +58,7 @@ export default withStyles(styles)(ProgressBar);
 //     },
 // };
 //
-// class ProgressBar extends React.Component {
+// class ProgressLineBar extends React.Component {
 //   timer = null;
 //
 //   state = {
@@ -86,8 +96,8 @@ export default withStyles(styles)(ProgressBar);
 //   }
 // }
 //
-// ProgressBar.propTypes = {
+// ProgressLineBar.propTypes = {
 //   classes: PropTypes.object.isRequired,
 // };
 //
-// export default withStyles(styles)(ProgressBar);
+// export default withStyles(styles)(ProgressLineBar);
