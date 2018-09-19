@@ -3,6 +3,8 @@ Description
 
 Webservice application for automatic Knee Localization and Osteoarthritis KL grading in posteroanterior knee X-ray images.
 
+![example](example.png)
+
 Installation
 ------------
 
@@ -25,9 +27,9 @@ pip install .
 cd ..
 
 # Install DeepKnee
-# WIP
-# cd src_deepknee
-# cd ..
+cd src_deepknee
+pip install .
+cd ..
 
 # Install the webserver dependencies
 cd src_web
