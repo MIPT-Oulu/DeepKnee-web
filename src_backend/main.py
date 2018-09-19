@@ -124,62 +124,53 @@ def _png_to_web_base64(fn, fliplr=False):
     return web_image_prefix + tmp
 
 
-class SIONamespace(socketio.Namespace):
-    def on_connect(self, sid, environ):
-        logger.info('Connected: {}'.format(sid))
+app = Flask(__name__)
+sio = socketio.Server()
 
-    def on_dicom_submission(self, sid, data):
-        # logger.debug('Received message: {}'.format(data))
-        logger.info('Message received')
-        logger.debug(repr(datetime.now()))
 
-        global knee_wrapper
+@sio.on('dicom_submission')
+def on_dicom_submission(sid, data):
+    sio.emit('dicom_received', dict(), sid=sid)
+    sio.sleep(0)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            # logger.debug(f'tmp dir: {tmp_dir}')
-            # Create subfolders to store intermediate results
-            path_raw = os.path.join(tmp_dir, '00_raw')
-            path_crop = os.path.join(tmp_dir, '01_crop')
-            path_inf = os.path.join(tmp_dir, '02_inf')
+    # logger.debug('Received message: {}'.format(data))
+    logger.info('Message received')
+    logger.debug(repr(datetime.now()))
 
-            for p in (path_raw, path_crop, path_inf):
-                os.makedirs(p)
+    global knee_wrapper
 
-            # Receive and decode DICOM image
-            logger.debug('Pre-write')
-            logger.debug(repr(datetime.now()))
-            fname_dicom = os.path.join(path_raw, 'image.dicom')
-            with open(fname_dicom, 'wb') as f:
-                # Remove the web-content prefix
-                tmp = data['file_blob'].split(',', 1)[1]
-                logger.debug('Pre-decode')
-                logger.debug(repr(datetime.now()))
-                tmp_dec = base64.b64decode(tmp)
-                logger.debug('Post-decode')
-                logger.debug(repr(datetime.now()))
-                f.write(tmp_dec)
-                logger.debug('Post-write')
-                logger.debug(repr(datetime.now()))
-                # f.write(base64.b64decode(tmp))
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        # logger.debug(f'tmp dir: {tmp_dir}')
+        # Create subfolders to store intermediate results
+        path_raw = os.path.join(tmp_dir, '00_raw')
+        path_crop = os.path.join(tmp_dir, '01_crop')
+        path_inf = os.path.join(tmp_dir, '02_inf')
 
-            logger.info('Message decoded')
-            logger.debug(repr(datetime.now()))
+        for p in (path_raw, path_crop, path_inf):
+            os.makedirs(p)
 
-            # Run knee localization and grading
-            knee_wrapper.run(
-                path_raw=path_raw,
-                path_crop=path_crop,
-                path_inf=path_inf
-            )
+        # Receive and decode DICOM image
+        fname_dicom = os.path.join(path_raw, 'image.dicom')
+        with open(fname_dicom, 'wb') as f:
+            # Remove the web-content prefix
+            tmp = data['file_blob'].split(',', 1)[1]
+            f.write(base64.b64decode(tmp))
 
-            # Find the files with the results
-            paths_results_raw = list(sorted(
-                glob(os.path.join(path_crop, '**', '*.png'))))
-            paths_results_heatmap = list(sorted(
-                glob(os.path.join(path_inf, 'heatmap_*.png'))))
-            paths_results_prob = list(sorted(
-                glob(os.path.join(path_inf, 'prob_*.png'))))
+        # Run knee localization and grading
+        knee_wrapper.run(
+            path_raw=path_raw,
+            path_crop=path_crop,
+            path_inf=path_inf)
 
+        # Find the files with the results
+        paths_results_raw = list(sorted(
+            glob(os.path.join(path_crop, '**', '*.png'))))
+        paths_results_heatmap = list(sorted(
+            glob(os.path.join(path_inf, 'heatmap_*.png'))))
+        paths_results_prob = list(sorted(
+            glob(os.path.join(path_inf, 'prob_*.png'))))
+
+        try:
             # Pack the results into JSON-message
             # TODO: implement image_src acquisition
             # "image_src": _png_to_web_base64(paths_results_heatmap[0]),
@@ -191,28 +182,29 @@ class SIONamespace(socketio.Namespace):
                 "special_1st": _png_to_web_base64(paths_results_prob[0]),
                 "special_2nd": _png_to_web_base64(paths_results_prob[1])
             }
+            # path_debug = '/Users/egor/Desktop/Screen Shot 2018-09-01 at 19.59.40.png'
+            # ret = json.dumps(
+            #     {"image_src": _png_to_web_base64(path_debug),
+            #      "image_first": _png_to_web_base64(path_debug),
+            #      "image_second": _png_to_web_base64(path_debug),
+            #      "special_first": _png_to_web_base64(path_debug),
+            #      "special_second": _png_to_web_base64(path_debug)}
+            # )
+        except BaseException as e:
+            logger.error('Error sending the results:\n{}'.format(repr(e)))
+            ret = {
+                "image_1st_raw": None,
+                "image_2nd_raw": None,
+                "image_1st_heatmap": None,
+                "image_2nd_heatmap": None,
+                "special_1st": None,
+                "special_2nd": None
+            }
 
-        # path_debug = '/Users/egor/Desktop/Screen Shot 2018-09-01 at 19.59.40.png'
-        # ret = json.dumps(
-        #     {"image_src": _png_to_web_base64(path_debug),
-        #      "image_first": _png_to_web_base64(path_debug),
-        #      "image_second": _png_to_web_base64(path_debug),
-        #      "special_first": _png_to_web_base64(path_debug),
-        #      "special_second": _png_to_web_base64(path_debug)}
-        # )
+    # Send out the results
+    # logger.debug('Returning: {}'.format(ret))
+    sio.emit('dicom_processed', ret, sid=sid)
 
-        # Send out the results
-        # logger.debug('Returning: {}'.format(ret))
-        self.emit('dicom_processing', ret)
-
-    def on_disconnect(self, sid):
-        logger.info('Disconnected: {}'.format(sid))
-
-
-sio = socketio.Server()
-app = Flask(__name__)
-
-sio.register_namespace(SIONamespace())
 
 # Wrap Flask application with socketio's middleware
 app = socketio.Middleware(sio, app)
