@@ -210,5 +210,5 @@ def on_dicom_submission(sid, data):
 app = socketio.Middleware(sio, app, socketio_path='/deepknee/backend/socket.io')
 
 # Deploy as an eventlet WSGI server
-eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
+eventlet.wsgi.server(eventlet.listen(('0.0.0.0', 5000)), app)
 # eventlet.wsgi.server(eventlet.listen(('mipt-ml.oulu.fi', 5000)), app)

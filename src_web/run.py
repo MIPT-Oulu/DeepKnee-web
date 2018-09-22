@@ -14,5 +14,5 @@ def serve(path):
 
 
 if __name__ == '__main__':
-    app.run(host='', use_reloader=False, debug=True, port=5001, threaded=True)
-    # app.run(host='mipt-ml.oulu.fi', use_reloader=False, debug=True, port=5001, threaded=True)
+    #app.run(host='', use_reloader=False, debug=True, port=5001, threaded=True)
+    app.run(host='0.0.0.0', use_reloader=False, debug=True, port=5001, threaded=True)

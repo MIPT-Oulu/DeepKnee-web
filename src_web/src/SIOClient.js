@@ -6,8 +6,7 @@ class SIOClient extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            endpoint: "http://0.0.0.0:5000/deepknee/backend",
-            // endpoint: "http://mipt-ml.oulu.fi:5000",
+            endpoint: "/deepknee/backend"
         };
         /*
         this.socket = socketIOClient(this.state.endpoint,
