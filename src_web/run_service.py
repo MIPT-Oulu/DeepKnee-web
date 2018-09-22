@@ -6,7 +6,6 @@ import tempfile
 import base64
 from glob import glob
 from io import BytesIO
-
 import matplotlib
 matplotlib.use('Agg')
 import imageio
@@ -14,7 +13,7 @@ import numpy as np
 
 import socketio
 import eventlet
-from flask import Flask
+from flask import Flask, send_from_directory
 
 from oulukneeloc.detector import KneeLocalizer
 from oulukneeloc.proposals import read_dicom, preprocess_xray
@@ -123,9 +122,17 @@ def _png_to_web_base64(fn, fliplr=False):
     tmp = base64.b64encode(tmp).decode('ascii')
     return web_image_prefix + tmp
 
-
-app = Flask(__name__)
+app = Flask(__name__, static_folder='build')
 sio = socketio.Server()
+
+@app.route('/deepknee', defaults={'path': ''})
+@app.route('/deepknee/<path:path>')
+def serve(path):
+    if path != "" and os.path.exists("build/" + path):
+        return send_from_directory('build', path)
+    else:
+        return send_from_directory('build', 'index.html')
+
 
 @sio.on('dicom_submission',  namespace='/deepknee/backend')
 def on_dicom_submission(sid, data):
@@ -210,5 +217,5 @@ def on_dicom_submission(sid, data):
 app = socketio.Middleware(sio, app, socketio_path='/deepknee/backend/socket.io')
 
 # Deploy as an eventlet WSGI server
-eventlet.wsgi.server(eventlet.listen(('0.0.0.0', 5000)), app)
+eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
 # eventlet.wsgi.server(eventlet.listen(('mipt-ml.oulu.fi', 5000)), app)

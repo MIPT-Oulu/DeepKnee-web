@@ -8,17 +8,9 @@ class SIOClient extends Component {
         this.state = {
             endpoint: "/deepknee/backend"
         };
-        /*
-        this.socket = socketIOClient(this.state.endpoint,
-            {
-                reconnection: true,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 5000,
-                reconnectionAttempts: Infinity,
-                path: '/deepknee/backend/socket.io'
-            });
-        */
-        this.socket = openSocket(this.state.endpoint, {path: '/deepknee/backend/socket.io'});
+        this.socket = openSocket(this.state.endpoint,
+          {path: '/deepknee/backend/socket.io'}
+        );
     }
 
     componentDidMount() {
