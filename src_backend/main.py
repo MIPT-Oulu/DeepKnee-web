@@ -127,10 +127,10 @@ def _png_to_web_base64(fn, fliplr=False):
 app = Flask(__name__)
 sio = socketio.Server()
 
-
-@sio.on('dicom_submission')
+@sio.on('dicom_submission',  namespace='/deepknee/backend')
 def on_dicom_submission(sid, data):
-    sio.emit('dicom_received', dict(), sid=sid)
+    sio.emit('dicom_received', dict(), room=sid, namespace='/deepknee/backend')
+    logger.info(f'send a message back to {sid}')
     sio.sleep(0)
 
     # logger.debug('Received message: {}'.format(data))
@@ -203,11 +203,11 @@ def on_dicom_submission(sid, data):
 
     # Send out the results
     # logger.debug('Returning: {}'.format(ret))
-    sio.emit('dicom_processed', ret, sid=sid)
+    sio.emit('dicom_processed', ret, room=sid, namespace='/deepknee/backend')
 
 
 # Wrap Flask application with socketio's middleware
-app = socketio.Middleware(sio, app)
+app = socketio.Middleware(sio, app, socketio_path='/deepknee/backend/socket.io')
 
 # Deploy as an eventlet WSGI server
 eventlet.wsgi.server(eventlet.listen(('', 5000)), app)

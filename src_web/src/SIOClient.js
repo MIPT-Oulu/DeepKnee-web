@@ -1,20 +1,25 @@
 import React, {Component} from "react";
 import socketIOClient from "socket.io-client";
+import openSocket from 'socket.io-client';
 
 class SIOClient extends Component {
     constructor(props) {
         super(props);
         this.state = {
-            endpoint: "http://0.0.0.0:5000",
+            endpoint: "http://0.0.0.0:5000/deepknee/backend",
             // endpoint: "http://mipt-ml.oulu.fi:5000",
         };
+        /*
         this.socket = socketIOClient(this.state.endpoint,
             {
                 reconnection: true,
                 reconnectionDelay: 1000,
                 reconnectionDelayMax: 5000,
-                reconnectionAttempts: Infinity
+                reconnectionAttempts: Infinity,
+                path: '/deepknee/backend/socket.io'
             });
+        */
+        this.socket = openSocket(this.state.endpoint, {path: '/deepknee/backend/socket.io'});
     }
 
     componentDidMount() {

@@ -4,9 +4,8 @@ from flask import Flask, send_from_directory
 
 app = Flask(__name__, static_folder='build')
 
-
-@app.route('/', defaults={'path': ''})
-@app.route('/<path:path>')
+@app.route('/deepknee', defaults={'path': ''})
+@app.route('/deepknee/<path:path>')
 def serve(path):
     if path != "" and os.path.exists("build/" + path):
         return send_from_directory('build', path)
