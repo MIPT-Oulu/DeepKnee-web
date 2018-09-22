@@ -105,19 +105,36 @@ class KneeWrapper(object):
 knee_wrapper = KneeWrapper()
 
 
-def _png_to_web_base64(fn, fliplr=False):
+def _png_to_web_base64(fn, fliplr=False, crop_to=None):
+    """Coneverts an image into to base64.
+
+    Image must be stored in the file.
+
+    Parameters:
+    -----------
+    fn : str
+        filename
+    fliplr : bool
+        Whether to flip the image.
+    crop_to : tuple or None
+        Crop to (H_new, W_new)
+    """
     web_image_prefix = 'data:image/png;base64,'
 
+
+    image = imageio.imread(fn)
     if fliplr:
-        image = imageio.imread(fn)
         image = np.fliplr(image)
-        tmp_file = BytesIO()
-        imageio.imwrite(tmp_file, image, format='png')
-        tmp_file.seek(0)
-        tmp = tmp_file.read()
-    else:
-        with open(fn, 'rb') as f:
-            tmp = f.read()
+    tmp_file = BytesIO()
+
+    if crop_to is not None:
+        assert len(crop_to) == 2
+        H, W = image.shape[0], image.shape[1]
+        image = image[H//2-crop_to[0]//2:H//2+crop_to[0]//2, W//2-crop_to[1]//2:W//2+crop_to[1]//2]
+
+    imageio.imwrite(tmp_file, image, format='png')
+    tmp_file.seek(0)
+    tmp = tmp_file.read()
 
     tmp = base64.b64encode(tmp).decode('ascii')
     return web_image_prefix + tmp
@@ -182,8 +199,8 @@ def on_dicom_submission(sid, data):
             # TODO: implement image_src acquisition
             # "image_src": _png_to_web_base64(paths_results_heatmap[0]),
             ret = {
-                "image_1st_raw": _png_to_web_base64(paths_results_raw[0], fliplr=True),
-                "image_2nd_raw": _png_to_web_base64(paths_results_raw[1]),
+                "image_1st_raw": _png_to_web_base64(paths_results_raw[0], fliplr=True, crop_to=(300, 300)),
+                "image_2nd_raw": _png_to_web_base64(paths_results_raw[1], crop_to=(300, 300)),
                 "image_1st_heatmap": _png_to_web_base64(paths_results_heatmap[0], fliplr=True),
                 "image_2nd_heatmap": _png_to_web_base64(paths_results_heatmap[1]),
                 "special_1st": _png_to_web_base64(paths_results_prob[0]),
