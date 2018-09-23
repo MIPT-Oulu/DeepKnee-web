@@ -1,5 +1,4 @@
 import React, {Component} from "react";
-import socketIOClient from "socket.io-client";
 import openSocket from 'socket.io-client';
 
 class SIOClient extends Component {
