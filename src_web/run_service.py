@@ -110,8 +110,8 @@ def _png_to_web_base64(fn, fliplr=False, crop_to=None):
 
     Image must be stored in the file.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     fn : str
         filename
     fliplr : bool
@@ -120,7 +120,6 @@ def _png_to_web_base64(fn, fliplr=False, crop_to=None):
         Crop to (H_new, W_new)
     """
     web_image_prefix = 'data:image/png;base64,'
-
 
     image = imageio.imread(fn)
     if fliplr:
@@ -139,8 +138,10 @@ def _png_to_web_base64(fn, fliplr=False, crop_to=None):
     tmp = base64.b64encode(tmp).decode('ascii')
     return web_image_prefix + tmp
 
+
 app = Flask(__name__, static_folder='build')
-sio = socketio.Server()
+sio = socketio.Server(ping_timeout=120, ping_interval=120)
+
 
 @app.route('/deepknee', defaults={'path': ''})
 @app.route('/deepknee/<path:path>')

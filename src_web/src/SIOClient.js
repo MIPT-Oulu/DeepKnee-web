@@ -8,8 +8,13 @@ class SIOClient extends Component {
         this.state = {
             endpoint: "/deepknee/backend"
         };
-        this.socket = openSocket(this.state.endpoint,
-          {path: '/deepknee/backend/socket.io'}
+        this.socket = openSocket(
+            this.state.endpoint,
+            {path: '/deepknee/backend/socket.io',
+             timeout: 120000,
+             pingTimeout: 120000,
+             pingInterval: 120000,
+            }
         );
     }
 
