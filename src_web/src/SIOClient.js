@@ -34,7 +34,6 @@ class SIOClient extends Component {
 
             this.socket.emit('dicom_submission', blob);
             this.props.onDicomSent();
-            // console.log(blob);
         }
     }
 

@@ -15,8 +15,6 @@ class App extends Component {
             file_name: null,
             file_blob: null,
 
-            // image_src: null,
-            // special_src: null,
             image_1st_raw: null,
             image_2nd_raw: null,
             image_1st_heatmap: null,
@@ -62,8 +60,6 @@ class App extends Component {
             server_status: "dicom_processed",
             server_response: data.server_response,
 
-            // image_src: data.image_src,
-            // special_src: data.special_src,
             image_1st_raw: data.image_1st_raw,
             image_2nd_raw: data.image_2nd_raw,
             image_1st_heatmap: data.image_1st_heatmap,
