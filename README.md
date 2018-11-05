@@ -2,13 +2,13 @@
 
 ## Description
 
-Web-service application for automatic Knee Localization and Osteoarthritis KL grading in PA X-ray images.
+Web-service application for automatic __knee localization__ and __osteoarthritis KL-scale grading__ in posteroanterior (PA) X-ray images.
 
 ![example](example.png)
 
 ## Installation
 
-0. Before going through the next steps, make sure to install `Conda`, `Node.js`;
+0. Before going through the next steps, make sure to install [Conda](https://conda.io/miniconda.html) and [Node.js](https://nodejs.org/en/download/);
 1. Clone the repository:
 
 ```bash
@@ -43,12 +43,12 @@ To run the app:
 sh run_service.sh
 ```
 
-This script will automatically install the `Node.js` packages and will build an optimized production-ready React app. Additionally, the scripts launches the webservice which is available under `127.0.0.1:5000/deepknee`.
+This script will automatically install the required Node.js packages and build an optimized production-ready React.js app. As a final step, the script launches the webservice which is available under http://127.0.0.1:5000/deepknee.
 
 ## License
 
-The provided code is freely available only for academic research.
-Any other usage is strictly prohibited and the code authors need to be contacted separately.
+The provided code is freely available for academic research purposes only. Any other usage is strictly prohibited without an explicit authors consent.
+In case of interest, please, feel free to contact the authors.
 
 ## Authors
 
