@@ -1,5 +1,7 @@
 # DeepKnee-web
 
+**IMPORTANT: See the main repo for the latest version of the service - https://github.com/MIPT-Oulu/DeepKnee/tree/pypackage. This repo is no longer maintained.**
+
 ## Description
 
 Web-service application for automatic __knee localization__ and __osteoarthritis KL-scale grading__ in posteroanterior (PA) X-ray images.
